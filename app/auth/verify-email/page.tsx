@@ -6,23 +6,26 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { CheckCircle2, Loader2, Mail } from "lucide-react"
+import { Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isPending = searchParams.get("pending") === "true"
+  const isSuccess = searchParams.get("success") === "true"
 
   useEffect(() => {
-    // Auto redirect to dashboard after 3 seconds if verified
-    if (!isPending) {
+    // Auto redirect to login after 3 seconds on success
+    if (isSuccess) {
       const timer = setTimeout(() => {
-        router.push("/dashboard")
+        router.push("/auth/login")
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [isPending, router])
+  }, [isSuccess, router])
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100">
@@ -35,17 +38,42 @@ export default function VerifyEmailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">
-                {isPending ? "Verifikasi Email Diperlukan" : "Pendaftaran Berhasil!"}
+                {isSuccess 
+                  ? "Pendaftaran Berhasil!" 
+                  : isPending 
+                    ? "Verifikasi Email Diperlukan" 
+                    : "Verifikasi Email"}
               </CardTitle>
               <CardDescription>
-                {isPending
-                  ? "Silakan verifikasi email Anda untuk melanjutkan"
-                  : "Akun Anda telah dibuat dan diverifikasi"}
+                {isSuccess
+                  ? "Akun Anda telah dibuat. Silakan login dengan email dan password Anda"
+                  : isPending
+                    ? "Silakan verifikasi email Anda untuk melanjutkan"
+                    : "Mengalami masalah? Coba login kembali"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-6">
-                {isPending ? (
+                {isSuccess ? (
+                  <>
+                    <div className="flex justify-center">
+                      <CheckCircle2 className="h-16 w-16 text-green-600 animate-pulse" />
+                    </div>
+                    <Alert>
+                      <AlertDescription>
+                        Akun Anda berhasil dibuat! Anda akan diarahkan ke halaman login dalam beberapa detik.
+                      </AlertDescription>
+                    </Alert>
+                    <div className="space-y-3">
+                      <Link href="/auth/login">
+                        <Button className="w-full bg-primary hover:bg-primary">
+                          Masuk Sekarang
+                        </Button>
+                      </Link>
+                      <p className="text-xs text-gray-500">Gunakan email dan password yang tadi didaftarkan</p>
+                    </div>
+                  </>
+                ) : isPending ? (
                   <>
                     <div className="flex justify-center">
                       <Mail className="h-16 w-16 text-blue-600" />
@@ -72,19 +100,12 @@ export default function VerifyEmailPage() {
                 ) : (
                   <>
                     <div className="flex justify-center">
-                      <CheckCircle2 className="h-16 w-16 text-green-600 animate-pulse" />
+                      <Loader2 className="h-16 w-16 text-gray-400 animate-spin" />
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-600">Akun Anda siap digunakan!</p>
-                      <p className="text-sm text-gray-600">Anda akan diarahkan ke dashboard dalam beberapa detik...</p>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-gray-600">Memuat dashboard</span>
-                    </div>
-                    <Link href="/dashboard">
+                    <p className="text-sm text-gray-600">Memverifikasi email Anda...</p>
+                    <Link href="/auth/login">
                       <Button className="w-full bg-primary hover:bg-primary">
-                        Masuk ke Dashboard
+                        Kembali ke Login
                       </Button>
                     </Link>
                   </>
@@ -95,5 +116,26 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen w-full items-center justify-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Loading...</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   )
 }
