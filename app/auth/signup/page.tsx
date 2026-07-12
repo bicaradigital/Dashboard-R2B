@@ -34,20 +34,52 @@ export default function SignupPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up user
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName,
           },
         },
       })
-      if (error) throw error
-      router.push("/auth/verify-email")
+      
+      if (signUpError) {
+        throw signUpError
+      }
+
+      if (!signUpData.user) {
+        throw new Error("Pendaftaran gagal")
+      }
+
+      // After signup, immediately try to sign in
+      // This works if email confirmation is set to "Automatic" in Supabase
+      // Or if user_email_auto_confirmed is enabled
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError?.message?.includes("Email not confirmed")) {
+        // Email confirmation is required - show verify page with note
+        router.push("/auth/verify-email?pending=true")
+        return
+      }
+
+      if (signInError) {
+        throw signInError
+      }
+
+      // Wait a moment for session to establish
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Redirect to dashboard
+      router.push("/dashboard")
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Terjadi kesalahan")
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan"
+      console.error("[v0] Signup error:", errorMessage)
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

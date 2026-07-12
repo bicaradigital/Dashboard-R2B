@@ -39,12 +39,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If already logged in and on /auth → go to dashboard
-  if (session && (pathname === "/auth" || pathname === "/auth/login")) {
+  // If already logged in and on login page → go to dashboard
+  if (session && pathname === "/auth/login") {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)
   }
+
+  // Allow access to signup and verify-email even with session
+  // (user just completed signup and should see verify-email page)
 
   return supabaseResponse
 }
