@@ -33,12 +33,25 @@ export default function SignupPage() {
       return
     }
 
+    if (password.length < 6) {
+      setError("Password minimal 6 karakter")
+      setIsLoading(false)
+      return
+    }
+
+    if (!email.includes("@")) {
+      setError("Email tidak valid")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      // Sign up user
+      // Sign up user with autoConfirmed option for instant activation
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName,
           },
@@ -50,34 +63,14 @@ export default function SignupPage() {
       }
 
       if (!signUpData.user) {
-        throw new Error("Pendaftaran gagal")
+        throw new Error("Pendaftaran gagal, silakan coba lagi")
       }
 
-      // After signup, immediately try to sign in
-      // This works if email confirmation is set to "Automatic" in Supabase
-      // Or if user_email_auto_confirmed is enabled
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (signInError?.message?.includes("Email not confirmed")) {
-        // Email confirmation is required - show verify page with note
-        router.push("/auth/verify-email?pending=true")
-        return
-      }
-
-      if (signInError) {
-        throw signInError
-      }
-
-      // Wait a moment for session to establish
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Redirect to dashboard
-      router.push("/dashboard")
+      // After signup successful, redirect to verify page with success message
+      // User will be able to login on next attempt
+      router.push("/auth/verify-email?success=true")
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan"
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat pendaftaran"
       console.error("[v0] Signup error:", errorMessage)
       setError(errorMessage)
     } finally {
