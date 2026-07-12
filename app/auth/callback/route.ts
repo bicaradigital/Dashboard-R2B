@@ -16,5 +16,7 @@ export async function GET(request: Request) {
   }
 
   // Jika ada error atau tidak ada code, redirect ke halaman verifikasi dengan error
-  return NextResponse.redirect(new URL("/auth/verify-email?error=verification_failed", request.url))
+  return NextResponse.redirect(
+    new URL("/auth/verify-email?error=verification_failed", request.url)
+  )
 }
