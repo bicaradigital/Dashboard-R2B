@@ -2,103 +2,211 @@
 
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { PasswordInput } from "@/components/password-input"
-import Link from "next/link"
 import Image from "next/image"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+
+type LoginStep = "email" | "code"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const [step, setStep] = useState<LoginStep>("email")
+  const [email, setEmail] = useState("")
+  const [code, setCode] = useState("")
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setSuccess("")
     setIsLoading(true)
-    setError(null)
-    const supabase = createClient()
 
     try {
-      console.log("[v0] Attempting login for:", email)
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      
-      if (error) {
-        console.error("[v0] Login error:", error.message)
-        // Provide helpful error messages
-        if (error.message.includes("Email not confirmed")) {
-          throw new Error("Email belum dikonfirmasi. Silakan cek email Anda untuk link verifikasi.")
-        }
-        if (error.message.includes("Invalid login credentials")) {
-          throw new Error("Email atau password salah. Silakan coba lagi.")
-        }
-        throw error
-      }
-      
-      if (!data.session) {
-        throw new Error("Login gagal - session tidak ditemukan")
+      if (!email || !email.includes("@")) {
+        throw new Error("Email tidak valid")
       }
 
-      console.log("[v0] Login successful, redirecting to dashboard")
-      // Wait a bit for session to be established, then redirect
-      await new Promise(resolve => setTimeout(resolve, 500))
+      const response = await fetch("/api/auth/generate-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.toLowerCase() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal membuat kode")
+      }
+
+      setSuccess("Kode verifikasi telah dikirim ke email Anda")
+      setEmailSent(true)
+      
+      // For development, show the code if available
+      if (data.code) {
+        setSuccess(`Kode verifikasi: ${data.code} (Development Only)`)
+      }
+
+      setTimeout(() => {
+        setStep("code")
+      }, 1500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setSuccess("")
+    setIsLoading(true)
+
+    try {
+      if (!code || code.length < 6) {
+        throw new Error("Kode harus 6 digit")
+      }
+
+      const response = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.toLowerCase(),
+          code: code.toString(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Kode tidak valid")
+      }
+
+      setSuccess("Login berhasil! Redirecting...")
+      await new Promise(resolve => setTimeout(resolve, 1000))
       router.push("/dashboard")
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat login"
-      console.error("[v0] Login error:", errorMessage)
-      setError(errorMessage)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-yellow-50">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-screen w-full items-center justify-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100">
+      <div className="w-full max-w-md">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-4">
-            <Image src="/images/r2b-logo.png" alt="R2B Logo" width={80} height={80} />
+            <Image src="/images/r2b-logo.png" alt="R2B Logo" width={80} height={80} className="rounded-lg" />
             <h1 className="text-2xl font-bold text-gray-900">R2B Laporan Keuangan</h1>
           </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Masuk</CardTitle>
-              <CardDescription>Masukkan email dan password</CardDescription>
+              <CardTitle className="text-2xl">
+                {step === "email" ? "Masuk dengan Kode" : "Verifikasi Kode"}
+              </CardTitle>
+              <CardDescription>
+                {step === "email"
+                  ? "Masukkan email Anda untuk menerima kode akses"
+                  : "Masukkan kode 6 digit yang telah dikirim ke email Anda"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
-                <PasswordInput
-                  id="password"
-                  label="Password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password"
-                />
+              <form
+                onSubmit={step === "email" ? handleRequestCode : handleVerifyCode}
+                className="flex flex-col gap-4"
+              >
+                {step === "email" ? (
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="nama@perusahaan.com"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading || emailSent}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label htmlFor="code">Kode Verifikasi</Label>
+                    <Input
+                      id="code"
+                      type="text"
+                      placeholder="000000"
+                      maxLength={6}
+                      required
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                      disabled={isLoading}
+                      className="text-center text-2xl tracking-widest font-mono"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Kode akan dikirim ke: <span className="font-medium">{email}</span>
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-3 w-full"
+                      onClick={() => {
+                        setStep("email")
+                        setCode("")
+                      }}
+                      disabled={isLoading}
+                    >
+                      Ubah Email
+                    </Button>
+                  </div>
+                )}
+
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                <Button type="submit" disabled={isLoading} className="w-full">{isLoading ? "Masuk..." : "Masuk"}</Button>
+
+                {success && (
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">{success}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : step === "email" ? (
+                    "Minta Kode"
+                  ) : (
+                    "Verifikasi & Masuk"
+                  )}
+                </Button>
               </form>
-              <div className="mt-4 text-center text-sm">
-                Belum punya akun? <Link href="/auth/signup" className="text-primary underline">Daftar</Link>
-              </div>
             </CardContent>
           </Card>
+
+          <p className="text-center text-sm text-gray-600">
+            Hanya pengguna terdaftar yang dapat masuk dengan kode akses
+          </p>
         </div>
       </div>
     </div>
