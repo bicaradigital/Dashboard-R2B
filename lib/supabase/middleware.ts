@@ -1,53 +1,30 @@
 // lib/supabase/middleware.ts
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          // Mirror cookies back to the response so the browser stores them
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options)
-          })
-        },
-      },
-    },
-  )
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
   const { pathname } = request.nextUrl
   const isAuth = pathname.startsWith("/auth")
+  const isSetup = pathname.startsWith("/setup") || pathname.startsWith("/simple-setup")
+
+  // Check for user session cookie
+  const userSessionCookie = request.cookies.get('user_session')
+  const userDataCookie = request.cookies.get('user_data')
+  const hasSession = userSessionCookie?.value && userDataCookie?.value
 
   // If no session and trying to access protected route → go to login
-  if (!session && !isAuth && pathname !== "/") {
+  if (!hasSession && !isAuth && !isSetup && pathname !== "/") {
     const url = request.nextUrl.clone()
     url.pathname = "/auth/login"
     return NextResponse.redirect(url)
   }
 
   // If already logged in and on login page → go to dashboard
-  if (session && pathname === "/auth/login") {
+  if (hasSession && pathname === "/auth/login") {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)
   }
 
-  // Allow access to signup and verify-email even with session
-  // (user just completed signup and should see verify-email page)
-
-  return supabaseResponse
+  // Allow all requests to pass through
+  return NextResponse.next()
 }
