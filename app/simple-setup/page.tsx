@@ -19,7 +19,7 @@ export default function SimpleSetupPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
-  const [role, setRole] = useState("manager")
+  const [role] = useState("admin") // Hanya admin
 
   const handleInitialize = async () => {
     setIsInitializing(true)
@@ -65,7 +65,7 @@ export default function SimpleSetupPage() {
         throw new Error(data.error || "Gagal menambah user")
       }
 
-      setMessage(`User '${username}' berhasil dibuat dengan role '${role}'!`)
+      setMessage(`Administrator '${username}' berhasil dibuat!`)
       setUsername("")
       setPassword("")
       setFullName("")
@@ -88,11 +88,11 @@ export default function SimpleSetupPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Setup Awal</CardTitle>
+              <CardTitle className="text-2xl">Setup Administrator</CardTitle>
               <CardDescription>
                 {step === "init"
-                  ? "Buat database dan tambah user pertama"
-                  : "Tambahkan user dengan role (admin, manager, director)"}
+                  ? "Buat database dan tambah administrator"
+                  : "Tambahkan akun administrator"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -149,7 +149,7 @@ export default function SimpleSetupPage() {
                     <Input
                       id="fullName"
                       type="text"
-                      placeholder="Nama lengkap user"
+                      placeholder="Nama administrator"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -157,19 +157,10 @@ export default function SimpleSetupPage() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <select
-                      id="role"
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      disabled={isAddingUser}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="manager">Manager</option>
-                      <option value="director">Director</option>
-                    </select>
+                  <div className="rounded-md bg-blue-50 p-3">
+                    <p className="text-sm text-blue-900">
+                      <strong>Role:</strong> Administrator (penuh akses)
+                    </p>
                   </div>
 
                   {error && (
@@ -209,7 +200,7 @@ export default function SimpleSetupPage() {
                     }}
                     className="w-full"
                   >
-                    Tambah User Lain
+                    Tambah Administrator Lain
                   </Button>
 
                   <Button
