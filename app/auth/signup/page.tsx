@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PasswordInput } from "@/components/password-input"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import Image from "next/image"
+import { AlertCircle } from "lucide-react"
 
 export default function SignupPage() {
   const [email, setEmail] = useState("")
@@ -116,27 +119,28 @@ export default function SignupPage() {
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                  {error && <p className="text-sm text-red-500">{error}</p>}
+                  <PasswordInput
+                    id="password"
+                    label="Password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimal 6 karakter"
+                  />
+                  <PasswordInput
+                    id="confirmPassword"
+                    label="Konfirmasi Password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Masukkan ulang password"
+                  />
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
                   <Button type="submit" className="w-full bg-primary hover:bg-primary" disabled={isLoading}>
                     {isLoading ? "Mendaftar..." : "Daftar"}
                   </Button>
