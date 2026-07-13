@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PasswordInput } from "@/components/password-input"
 import Link from "next/link"
 import Image from "next/image"
-import { AlertCircle, CheckCircle2 } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -26,9 +27,11 @@ export default function LoginPage() {
     const supabase = createClient()
 
     try {
+      console.log("[v0] Attempting login for:", email)
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       
       if (error) {
+        console.error("[v0] Login error:", error.message)
         // Provide helpful error messages
         if (error.message.includes("Email not confirmed")) {
           throw new Error("Email belum dikonfirmasi. Silakan cek email Anda untuk link verifikasi.")
@@ -39,7 +42,13 @@ export default function LoginPage() {
         throw error
       }
       
-      // redirect ke dashboard
+      if (!data.session) {
+        throw new Error("Login gagal - session tidak ditemukan")
+      }
+
+      console.log("[v0] Login successful, redirecting to dashboard")
+      // Wait a bit for session to be established, then redirect
+      await new Promise(resolve => setTimeout(resolve, 500))
       router.push("/dashboard")
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat login"
@@ -69,10 +78,14 @@ export default function LoginPage() {
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
+                <PasswordInput
+                  id="password"
+                  label="Password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan password"
+                />
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
