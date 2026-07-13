@@ -22,8 +22,8 @@ Buka: http://localhost:3000/simple-setup
 
 - Klik "Mulai Setup"
 - Masukkan data administrator:
-  - Username: (misal: admin)
-  - Password: (misal: admin123)
+  - Username: (administrator)
+  - Password: (admin123)
   - Nama Lengkap: (misal: Nama Admin)
 - Klik "Tambah Administrator"
 - Selesai!
