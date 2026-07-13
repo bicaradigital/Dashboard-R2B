@@ -33,13 +33,14 @@ export async function POST(request: Request) {
       }
     )
 
-    // Query user dari database
+    // Query user dari database - HANYA ADMIN yang bisa login
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, username, full_name, role, is_active')
       .eq('username', username)
       .eq('password', password) // In production, use bcrypt!
       .eq('is_active', true)
+      .eq('role', 'admin') // Only admin can login
       .single()
 
     if (userError || !user) {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       })
       
       return NextResponse.json(
-        { error: 'Username atau password salah' },
+        { error: 'Hanya administrator yang dapat login' },
         { status: 401 }
       )
     }

@@ -127,8 +127,26 @@ export default function DashboardClient({ user, profile, initialTransactions }: 
   }, [supabase])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = "/auth/login"
+    try {
+      console.log('[v0] Logging out...')
+      // Call our logout API to clear session cookies
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      
+      if (response.ok) {
+        console.log('[v0] Logout successful')
+        // Redirect to login page
+        window.location.href = '/auth/login'
+      } else {
+        throw new Error('Logout failed')
+      }
+    } catch (error) {
+      console.error('[v0] Logout error:', error)
+      // Force redirect anyway
+      window.location.href = '/auth/login'
+    }
   }
 
   const formatCurrency = (amount: number) => {
